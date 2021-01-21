@@ -1,7 +1,11 @@
+import json
+
 from qrcode import QRCode, constants
 from telebot import TeleBot
-
+from bot.request import Request
 from bot.credentials import bot_token
+
+request = Request()
 
 
 class State:
@@ -51,22 +55,46 @@ bot = TeleBot(bot_token)
 state = State()
 
 
+def __get_msg():
+    return json.load(open("bot/messages.json"))
+
+
 @bot.message_handler(commands=['start', 'help'])
 def start_or_help(message):
-    bot.send_message(message.chat.id, f"Hello {message.from_user.first_name} {message.from_user.last_name}")
-    # state.set_user(message.from_user.username)
-    # state.add()
+    msg_data = __get_msg()['start_message']
+    bot.send_message(message.chat.id, f"{msg_data}")
 
 
-@bot.message_handler(commands=['step1'])
-def step1(message):
-    user_input_data = message.text.replace("/step1", "")
-    if not user_input_data:
-        return bot.send_message(message.chat.id, "Usage: /step1 your data")
+@bot.message_handler(regexp="(A)(ZE\d|A)(\d{7})$")
+def qr_code_generator(message):
+    data = message.text
+    msg_data = __get_msg()['waiting_message']
+    resp = request.get_user_data_by_serial_num(data)
+    bot.send_message(message.chat.id, f"{msg_data}")
+    if resp['body']:
+        msg_data = __get_msg()['waiting_success']
+        bot.send_message(message.chat.id, f"{msg_data}")
+        state.set_user(message.from_user.username)
+        qrcode_data = f"{resp['body']['serialNumber']}\n{resp['body']['phoneNumber']}" \
+                      f"\n{resp['body']['fullName']}"
+        qrcode = QRCodeGenerate(qrcode_data)
+        image = qrcode.get_image()
+        bot.send_photo(message.chat.id, image.get_image(), caption="")
+    else:
+        msg_data = __get_msg()['error_message']
+        bot.send_message(message.chat.id,
+                         f" {msg_data} ")
 
-    state.set_user(message.from_user.username)
-    state.add("step1", user_input_data)
-    bot.send_message(message.chat.id, f"Your data saved to cache")
+
+# @bot.message_handler(commands=['step1'])
+# def step1(message):
+#     user_input_data = message.text.replace("/step1", "")
+#     if not user_input_data:
+#         return bot.send_message(message.chat.id, "Usage: /step1 your data")
+#
+#     state.set_user(message.from_user.username)
+#     state.add("step1", user_input_data)
+#     bot.send_message(message.chat.id, f"Your data saved to cache")
 
 
 #
@@ -75,13 +103,14 @@ def step1(message):
 #     bot.send_message(message.chat.id, "Step 2")
 
 
-@bot.message_handler(commands=['end'])
-def end(message):
-    state.set_user(message.from_user.username)
-    qrcode = QRCodeGenerate(state.get_state())
-    image = qrcode.get_image()
-
-    bot.send_photo(message.chat.id, image.get_image(), caption="Data saved to db")
+# @bot.message_handler(commands=['end'])
+# def end(message):
+#     print(state.get_state())
+#     state.set_user(message.from_user.username)
+#     qrcode = QRCodeGenerate(state.get_state())
+#     image = qrcode.get_image()
+#
+#     bot.send_photo(message.chat.id, image.get_image(), caption="")
 
 
 bot.polling(none_stop=True)
