@@ -1,6 +1,10 @@
 {
   "start_message": "Salam. SuperfonBot-a Xoş Gəlmisiniz. Bot vasitəsi ilə Ş.V.nin seriya nömrəsini (AZE12345678, AA1234567) daxil etməklə şirkətimizin Superfon Bonus Sisteminə daxil olmuş olursunuz. Ş.V.nin seriya nömrəsini  daxil etdikdən sonra sizə verilən QR-Kod ilə hər dəfə mağazalarımızdan alış-veriş etdikdə QR-Kod ilə bonuslar toplayırsınız və bu bonuslar ilə bizdən hədiyyə məhsulları qazanacaqsınız. Xoş alış-verişlər. \n Qeyd: Əgər QR-Kodu itirsəniz Ş.V.nin seriya nömrəsini daxil etməklə yenidən əldə edə bilərsiniz",
   "waiting_message": "Zəhmət olmasa gözləyin. Məlumatlarınız yoxlanılır",
-  "error_message": "Təəssüfki sizin məlumatlar bazada tapılmadı zəhmət olmasa Ş.V.nin seriya nömrəsinin düzgün daxil etdiyinizdən əmin olun",
-  "waiting_success": "QR-Kod generasiya olunur ..."
+  "error_message_serial_num": "Təəssüfki sizin məlumatlar bazada tapılmadı zəhmət olmasa Ş.V.nin seriya nömrəsinin düzgün daxil etdiyinizdən əmin olun",
+  "error_message_password": "Təəssüfki sizin məlumatlar bazada tapılmadı zəhmət olmasa şifənizi düzgün daxil etdiyinizdən əmin olun",
+  "waiting_success": "QR-Kod generasiya olunur ...",
+  "qrcontent_error_message": "QR-Kodunun bazaya save oluna bilmədir",
+  "password": "Əgər QRKodunuzu itirsəniz sistem tərəfindən sizə müəyyənləşdirilmiş şifrəni istifadə edərək yenidən QRKodunuzu ala bilərsiniz. Şifrəniz : ",
+  "password_exists": "Bu Ş.V. üçün şifrə mövcuddur. Xahiş edirik QRKod almaq üçün sistem tərəfindən sizə verilən şifrəni istifadə edin. Əgər şifrəni unutmusunuzsa zəhmət olmasa verilmiş nömrə ilə əlaqə saxlayın: (+994)513609652"
 }

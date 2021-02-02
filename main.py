@@ -1,6 +1,8 @@
 import json
 
+from io import BytesIO
 from qrcode import QRCode, constants
+from PIL import Image, ImageDraw, ImageFont
 from telebot import TeleBot
 from bot.request import Request
 from bot.credentials import bot_token
@@ -37,7 +39,7 @@ class State:
 
 class QRCodeGenerate:
     def __init__(self, content, version=1, error_correction=constants.ERROR_CORRECT_L,
-                 box_size=50, border=6):
+                 box_size=4, border=0):
         self.qrcode = QRCode(
             version=version,
             error_correction=error_correction,
@@ -48,7 +50,20 @@ class QRCodeGenerate:
         self.qrcode.make(fit=True)
 
     def get_image(self):
-        return self.qrcode.make_image(fill_color="black", back_color="white")
+        img_w, img_h = 420, 240
+        image = Image.new('RGB', (img_w, img_h), color='#000099')
+        QRCodeImage = self.qrcode.make_image(fill_color="black", back_color="white")
+        qr_size = QRCodeImage.pixel_size
+        # font = ImageFont.truetype('/Library/Fonts/Arial.ttf', 15)
+        drawOn = ImageDraw.Draw(image)
+        drawOn.text((10, img_h - 30), "User's Name", fill=(255, 255, 0))
+        image.paste(QRCodeImage, ((img_w - qr_size) // 2, (img_h - qr_size) // 2))
+
+        bio = BytesIO()
+        bio.name = "image.jpeg"
+        image.save(bio, "JPEG")
+        bio.seek(0)
+        return bio
 
 
 bot = TeleBot(bot_token)
@@ -65,8 +80,8 @@ def start_or_help(message):
     bot.send_message(message.chat.id, f"{msg_data}")
 
 
-@bot.message_handler(regexp="(A)(ZE\d|A)(\d{7})$")
-def qr_code_generator(message):
+@bot.message_handler(regexp=r"(A)(ZE\d|A)(\d{7})$")
+def by_serial_number(message):
     data = message.text
     msg_data = __get_msg()['waiting_message']
     resp = request.get_user_data_by_serial_num(data)
@@ -75,42 +90,42 @@ def qr_code_generator(message):
         msg_data = __get_msg()['waiting_success']
         bot.send_message(message.chat.id, f"{msg_data}")
         state.set_user(message.from_user.username)
-        qrcode_data = f"{resp['body']['serialNumber']}\n{resp['body']['phoneNumber']}" \
-                      f"\n{resp['body']['fullName']}"
-        qrcode = QRCodeGenerate(qrcode_data)
-        image = qrcode.get_image()
-        bot.send_photo(message.chat.id, image.get_image(), caption="")
+        if resp['body']['status'] == '0' or resp['body']['status'] == 0:
+            qrcode = QRCodeGenerate(resp['body']['qrCodeContent'])
+            image = qrcode.get_image()
+            resp_update = request.update_query_status(serialNumber=resp['body']['serialNumber'],
+                                                      status=1)
+            if resp_update['body']['status']:
+                bot.send_photo(message.chat.id, image, caption="")
+                msg_data = __get_msg()['password']
+                password = resp['body']['password']
+                bot.send_message(message.chat.id, f"{msg_data}{password}")
+        else:
+            msg_data = __get_msg()['password_exists']
+            bot.send_message(message.chat.id, f"{msg_data}")
     else:
-        msg_data = __get_msg()['error_message']
+        msg_data = __get_msg()['error_message_serial_num']
         bot.send_message(message.chat.id,
                          f" {msg_data} ")
 
 
-# @bot.message_handler(commands=['step1'])
-# def step1(message):
-#     user_input_data = message.text.replace("/step1", "")
-#     if not user_input_data:
-#         return bot.send_message(message.chat.id, "Usage: /step1 your data")
-#
-#     state.set_user(message.from_user.username)
-#     state.add("step1", user_input_data)
-#     bot.send_message(message.chat.id, f"Your data saved to cache")
-
-
-#
-# @bot.message_handler(commands=['step2'])
-# def step2(message):
-#     bot.send_message(message.chat.id, "Step 2")
-
-
-# @bot.message_handler(commands=['end'])
-# def end(message):
-#     print(state.get_state())
-#     state.set_user(message.from_user.username)
-#     qrcode = QRCodeGenerate(state.get_state())
-#     image = qrcode.get_image()
-#
-#     bot.send_photo(message.chat.id, image.get_image(), caption="")
+@bot.message_handler(regexp=r"^[0-9]{1}[a-z]{1}[0-9]{1}[a-z]{1}[0-9]{1}[a-z]{1}$")
+def by_password(message):
+    data = message.text
+    msg_data = __get_msg()['waiting_message']
+    resp = request.get_user_data_by_password(data)
+    bot.send_message(message.chat.id, f"{msg_data}")
+    if resp['body']:
+        msg_data = __get_msg()['waiting_success']
+        bot.send_message(message.chat.id, f"{msg_data}")
+        state.set_user(message.from_user.username)
+        qrcode = QRCodeGenerate(resp['body']['qrCodeContent'])
+        image = qrcode.get_image()
+        bot.send_photo(message.chat.id, image, caption="")
+    else:
+        msg_data = __get_msg()['error_message_password']
+        bot.send_message(message.chat.id,
+                         f" {msg_data} ")
 
 
 bot.polling(none_stop=True)
