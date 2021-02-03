@@ -1,11 +1,11 @@
 import json
 
-from io import BytesIO
 from qrcode import QRCode, constants
-from PIL import Image, ImageDraw, ImageFont
 from telebot import TeleBot
-from bot.request import Request
+
 from bot.credentials import bot_token
+from bot.request import Request
+from bot.virtual_card import VirtualCard
 
 request = Request()
 
@@ -50,20 +50,7 @@ class QRCodeGenerate:
         self.qrcode.make(fit=True)
 
     def get_image(self):
-        img_w, img_h = 420, 240
-        image = Image.new('RGB', (img_w, img_h), color='#000099')
-        QRCodeImage = self.qrcode.make_image(fill_color="black", back_color="white")
-        qr_size = QRCodeImage.pixel_size
-        # font = ImageFont.truetype('/Library/Fonts/Arial.ttf', 15)
-        drawOn = ImageDraw.Draw(image)
-        drawOn.text((10, img_h - 30), "User's Name", fill=(255, 255, 0))
-        image.paste(QRCodeImage, ((img_w - qr_size) // 2, (img_h - qr_size) // 2))
-
-        bio = BytesIO()
-        bio.name = "image.jpeg"
-        image.save(bio, "JPEG")
-        bio.seek(0)
-        return bio
+        return self.qrcode.make_image(fill_color="black", back_color="white")
 
 
 bot = TeleBot(bot_token)
@@ -86,19 +73,22 @@ def by_serial_number(message):
     msg_data = __get_msg()['waiting_message']
     resp = request.get_user_data_by_serial_num(data)
     bot.send_message(message.chat.id, f"{msg_data}")
-    if resp['body']:
+    body = resp['body']
+    if body:
         msg_data = __get_msg()['waiting_success']
         bot.send_message(message.chat.id, f"{msg_data}")
         state.set_user(message.from_user.username)
-        if resp['body']['status'] == '0' or resp['body']['status'] == 0:
-            qrcode = QRCodeGenerate(resp['body']['qrCodeContent'])
+        if body['status'] == '0' or body['status'] == 0:
+            qrcode = QRCodeGenerate(body['qrCodeContent'])
             image = qrcode.get_image()
-            resp_update = request.update_query_status(serialNumber=resp['body']['serialNumber'],
+            resp_update = request.update_query_status(serialNumber=body['serialNumber'],
                                                       status=1)
             if resp_update['body']['status']:
+                card = VirtualCard(name=body['fullName'], password=body['password'], qr_code=image)
+                image = card.generate_virtual_card()
                 bot.send_photo(message.chat.id, image, caption="")
                 msg_data = __get_msg()['password']
-                password = resp['body']['password']
+                password = resp_update['body']['password']
                 bot.send_message(message.chat.id, f"{msg_data}{password}")
         else:
             msg_data = __get_msg()['password_exists']
@@ -115,12 +105,15 @@ def by_password(message):
     msg_data = __get_msg()['waiting_message']
     resp = request.get_user_data_by_password(data)
     bot.send_message(message.chat.id, f"{msg_data}")
-    if resp['body']:
+    body = resp['body']
+    if body:
         msg_data = __get_msg()['waiting_success']
         bot.send_message(message.chat.id, f"{msg_data}")
         state.set_user(message.from_user.username)
-        qrcode = QRCodeGenerate(resp['body']['qrCodeContent'])
+        qrcode = QRCodeGenerate(body['qrCodeContent'])
         image = qrcode.get_image()
+        card = VirtualCard(name=body['fullName'], password=body['password'], qr_code=image)
+        image = card.generate_virtual_card()
         bot.send_photo(message.chat.id, image, caption="")
     else:
         msg_data = __get_msg()['error_message_password']
