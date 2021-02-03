@@ -75,8 +75,6 @@ def by_serial_number(message):
     bot.send_message(message.chat.id, f"{msg_data}")
     body = resp['body']
     if body:
-        msg_data = __get_msg()['waiting_success']
-        bot.send_message(message.chat.id, f"{msg_data}")
         state.set_user(message.from_user.username)
         if body['status'] == '0' or body['status'] == 0:
             qrcode = QRCodeGenerate(body['qrCodeContent'])
@@ -88,7 +86,7 @@ def by_serial_number(message):
                 image = card.generate_virtual_card()
                 bot.send_photo(message.chat.id, image, caption="")
                 msg_data = __get_msg()['password']
-                password = resp_update['body']['password']
+                password = body['password']
                 bot.send_message(message.chat.id, f"{msg_data}{password}")
         else:
             msg_data = __get_msg()['password_exists']
@@ -107,8 +105,6 @@ def by_password(message):
     bot.send_message(message.chat.id, f"{msg_data}")
     body = resp['body']
     if body:
-        msg_data = __get_msg()['waiting_success']
-        bot.send_message(message.chat.id, f"{msg_data}")
         state.set_user(message.from_user.username)
         qrcode = QRCodeGenerate(body['qrCodeContent'])
         image = qrcode.get_image()

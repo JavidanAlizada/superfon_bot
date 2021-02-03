@@ -16,7 +16,6 @@ class VirtualCard:
         self.__css: str = ""
         self.__file: str = f"{str(self.__psw)}.svg"
 
-
     def image_base_64(self, filename):
         return f"data:image/png;base64,{b64encode(open(join(dirname(__file__), f'./fonts/{filename}.png'), 'rb').read()).decode('utf-8')} "
 
@@ -83,7 +82,7 @@ height: 290px;
 }
 .card_name {
     margin-bottom: 0;
-    margin-top: 45px;
+    margin-top: 55px;
     font-size: 13px;
     line-height: 18px;
     color: #fff;
@@ -109,7 +108,7 @@ height: 290px;
 }
 .qrcode{
     position: absolute;
-    top: 30%;
+    top: 27%;
     left: 65%;
 }
 .pass{
@@ -117,7 +116,7 @@ height: 290px;
     width: 51%; */
     position: absolute;
     left: 55%;
-    top: 75%;
+    top: 77%;
     font: 14px "Helvetica Neue", Helvetica, sans-serif;
 }
 .card_pass {
